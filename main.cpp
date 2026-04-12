@@ -15,9 +15,20 @@ void GaussianEdgeFilterWidth(int width, int height, int channels, unsigned char*
             int prev  = (y * width + (x - 1)) * channels;
             int next  = (y * width + (x + 1)) * channels;
 
-            for (int c = 0; c < 3; ++c) {
-                int diff = std::abs(source[next + c] - source[prev + c]);                
-                data[index + c] = static_cast<unsigned char>(diff);
+            int diffR { std::abs(source[next + 0] - source[prev + 0]) };
+            int diffG { std::abs(source[next + 1] - source[prev + 1]) };
+            int diffB { std::abs(source[next + 2] - source[prev + 2]) };
+
+            int wh{ 25 };
+
+            if ((diffR > wh && diffG > wh) || (diffR > wh && diffB > wh) || (diffG > wh && diffB > wh)) {
+                data[index + 0] = 255;
+                data[index + 1] = 255;
+                data[index + 2] = 255;
+            } else {
+                data[index + 0] = 0;
+                data[index + 1] = 0;
+                data[index + 2] = 0;
             }
         }
     }
@@ -32,9 +43,20 @@ void GaussianEdgeFilterRow(int width, int height, int channels, unsigned char* d
             int up  = ((y-1) * width + x) * channels;
             int down  = ((y+1) * width + x) * channels;
 
-            for (int c = 0; c < 3; ++c) {
-                int diff = std::abs(source[up + c] - source[down + c]);                
-                data[index + c] = static_cast<unsigned char>(diff);
+            int diffR { std::abs(source[up + 0] - source[down + 0]) };
+            int diffG { std::abs(source[up + 1] - source[down + 1]) };
+            int diffB { std::abs(source[up + 2] - source[down + 2]) };
+
+            int wh{ 25 };
+
+            if ((diffR > wh && diffG > wh) || (diffR > wh && diffB > wh) || (diffG > wh && diffB > wh)) {
+                data[index + 0] = 255;
+                data[index + 1] = 255;
+                data[index + 2] = 255;
+            } else {
+                data[index + 0] = 0;
+                data[index + 1] = 0;
+                data[index + 2] = 0;
             }
         }
     }
