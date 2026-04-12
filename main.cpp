@@ -11,9 +11,9 @@ void GaussianEdgeFilterWidth(int width, int height, int channels, unsigned char*
 
     for (int y = 0; y < height; ++y) {
         for (int x = 1; x < width - 1; ++x) {
-            int index = (y * width + x) * channels;
-            int prev  = (y * width + (x - 1)) * channels;
-            int next  = (y * width + (x + 1)) * channels;
+            int index { (y * width + x) * channels };
+            int prev  { (y * width + (x - 1)) * channels };
+            int next  { (y * width + (x + 1)) * channels };
 
             int diffR { std::abs(source[next + 0] - source[prev + 0]) };
             int diffG { std::abs(source[next + 1] - source[prev + 1]) };
@@ -39,9 +39,9 @@ void GaussianEdgeFilterRow(int width, int height, int channels, unsigned char* d
 
     for (int y = 1; y < height - 1; ++y) {
         for (int x = 0; x < width; ++x) {
-            int index = (y * width + x) * channels;
-            int up  = ((y-1) * width + x) * channels;
-            int down  = ((y+1) * width + x) * channels;
+            int index { (y * width + x) * channels };
+            int up    { ((y - 1) * width + x) * channels };
+            int down  { ((y + 1) * width + x) * channels };
 
             int diffR { std::abs(source[up + 0] - source[down + 0]) };
             int diffG { std::abs(source[up + 1] - source[down + 1]) };
