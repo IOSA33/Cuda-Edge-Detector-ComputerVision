@@ -1,4 +1,4 @@
-# Computer Vision Edge Detector
+# A Canny Computer Vision Edge Detector
 
 - Using modern C++
 - GPU side NVIDIA CUDA for quick optimization of the algorithm
