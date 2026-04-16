@@ -5,6 +5,7 @@
 #include <iostream>
 #include <chrono>
 #include <vector>
+#include <emmintrin.h>
 #include <algorithm>
 
 void GaussianEdgeFilter(int width, int height, int channels, unsigned char* data) {
@@ -100,6 +101,7 @@ void HandVision(int width, int height, int channels, unsigned char* data) {
 
     size_t x_coord { sum_10 / sum_00 };
     size_t y_coord { sum_01 / sum_00 };
+    size_t index_centroid { (y_coord * width + x_coord) * channels };
 
     int r { 1100 };
     int d { 1350 };
@@ -144,7 +146,7 @@ void HandVision(int width, int height, int channels, unsigned char* data) {
 int main() {
     const auto start { std::chrono::high_resolution_clock::now() };
     int width, height, channels;
-    unsigned char* data { stbi_load("../photos/3.jpg", &width, &height, &channels, 0) };
+    unsigned char* data { stbi_load("../photos/1.jpg", &width, &height, &channels, 0) };
     if (!data) {
         std::cout << "Failed to load INPUT image\n";
         return 1;
