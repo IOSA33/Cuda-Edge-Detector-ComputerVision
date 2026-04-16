@@ -5,6 +5,8 @@
 #include <iostream>
 #include <chrono>
 #include <vector>
+#include <emmintrin.h>
+#include <algorithm>
 
 void GaussianEdgeFilter(int width, int height, int channels, unsigned char* data) {
     std::vector<unsigned char> source(data, data + (width * height * channels));
@@ -68,23 +70,32 @@ void HandVision(int width, int height, int channels, unsigned char* data) {
     size_t sum_00 { 0 };
     size_t sum_10 { 0 };
     size_t sum_01 { 0 };
+    size_t y { 0 };
+    size_t x { 0 };
 
-    for (size_t y { 0 }; y < height; ++y) {
-        for (size_t x { 0 }; x < width; ++x) {
-            size_t index { (y * width + x) * channels };
+    for (size_t i { 0 }; i < height * width; ++i) {
+        size_t index { i * channels };
 
-            if (std::abs(data[index + 0] - colR) <= tolerance && std::abs(data[index + 1] - colG) <= tolerance && std::abs(data[index + 2] - colB) <= tolerance) {
-                data[index + 0] = 0;
-                data[index + 1] = 0;
-                data[index + 2] = 255;
-                ++sum_00;
-                sum_10 += x * 1;
-                sum_01 += y * 1;
-            } else {
-                data[index + 0] = 0;
-                data[index + 1] = 0;
-                data[index + 2] = 0;
-            }
+        if ((((data[index + 0] - colR) + ((data[index + 0] - colR) >> sizeof(int) * CHAR_BIT - 1)) ^ ((data[index + 0] - colR) >> sizeof(int) * CHAR_BIT - 1)) <= tolerance &&
+            (((data[index + 1] - colG) + ((data[index + 1] - colG) >> sizeof(int) * CHAR_BIT - 1)) ^ ((data[index + 1] - colG) >> sizeof(int) * CHAR_BIT - 1)) <= tolerance &&
+            (((data[index + 2] - colB) + ((data[index + 2] - colB) >> sizeof(int) * CHAR_BIT - 1)) ^ ((data[index + 2] - colB) >> sizeof(int) * CHAR_BIT - 1)) <= tolerance) {
+
+            data[index + 0] = 255;
+            data[index + 1] = 255;
+            data[index + 2] = 255;
+
+            ++sum_00;{}
+            sum_10 += x;
+            sum_01 += y;
+        } else {
+            data[index + 0] = 0;
+            data[index + 1] = 0;
+            data[index + 2] = 0;
+        }
+
+        if (++x == width) {
+            x = 0;
+            ++y;
         }
     }
 
@@ -135,7 +146,7 @@ void HandVision(int width, int height, int channels, unsigned char* data) {
 int main() {
     const auto start { std::chrono::high_resolution_clock::now() };
     int width, height, channels;
-    unsigned char* data { stbi_load("../photos/sample2_hand.jpg", &width, &height, &channels, 0) };
+    unsigned char* data { stbi_load("../photos/1.jpg", &width, &height, &channels, 0) };
     if (!data) {
         std::cout << "Failed to load INPUT image\n";
         return 1;
@@ -149,7 +160,6 @@ int main() {
     }
 
     stbi_image_free(data);
-
     const auto end { std::chrono::high_resolution_clock::now() };
     std::cout << "Time used: " << std::chrono::duration<double>(end - start) << std::endl;
 }
