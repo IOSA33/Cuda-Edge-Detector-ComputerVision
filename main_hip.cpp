@@ -5,8 +5,6 @@
 #include <iostream>
 #include <chrono>
 #include <vector>
-#include <emmintrin.h>
-#include <algorithm>
 
 void GaussianEdgeFilter(int width, int height, int channels, unsigned char* data) {
     std::vector<unsigned char> source(data, data + (width * height * channels));
