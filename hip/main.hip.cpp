@@ -5,6 +5,7 @@
 #include <iostream>
 #include <chrono>
 #include <vector>
+#include <hip/hip_runtime.h>
 
 __global__ void HandVisionGPU(int width, int height, int channels, unsigned char* data) {
     unsigned char colR{ 208 };
@@ -25,7 +26,7 @@ __global__ void HandVisionGPU(int width, int height, int channels, unsigned char
         if (std::abs(data[index + 0] - colR) <= tolerance && 
             std::abs(data[index + 1] - colG) <= tolerance && 
             std::abs(data[index + 2] - colB) <= tolerance) {
-            
+                
             data[index + 0] = 255;
             data[index + 1] = 255;
             data[index + 2] = 255;
@@ -103,7 +104,7 @@ int main() {
     // Initializing variables and reading .jpg photos to RGB format 
     //
     int width, height, channels;
-    unsigned char* data { stbi_load("../../photos/2.jpg", &width, &height, &channels, 0) };
+    unsigned char* data { stbi_load("/home/user/cppProjects/Cuda-ComputerVision/photos/sample1.jpg", &width, &height, &channels, 0) };
     if (!data) {
         std::cout << "Failed to load INPUT image\n";
         return 1;
@@ -124,9 +125,9 @@ int main() {
     //
     // Allocating space in global memory
     //
-    std::cout << "Allocating " << width * height * sizeof(int) / 1.0e6 << " MB of global memory." << std::endl;
-    double* deviceBuffer;
-    err = hipMalloc(&deviceBuffer, width * height * sizeof(double));
+    std::cout << "Allocating " << width * height * channels * sizeof(unsigned char) / 1.0e6 << " MB of global memory." << std::endl;
+    unsigned char* deviceBuffer;
+    err = hipMalloc(&deviceBuffer, width * height * channels * sizeof(unsigned char));
     if ( err != hipSuccess ) {
         std::cerr << "Failed to allocate memory." << std::endl;
         std::cerr << "hipError-code: " << err << std::endl;
@@ -137,69 +138,66 @@ int main() {
     //
     // Transfering photo data buffer to device memory
     //
-    std::cout << "Copying " << width * height * sizeof(int) / 1.0e6 << " MB from host to device." << std::endl;
-    err = hipMemcpy(deviceBuffer, data, width * height * sizeof(double), hipMemcpyHostToDevice);
+    std::cout << "Copying " << width * height * channels * sizeof(unsigned char) / 1.0e6 << " MB from host to device." << std::endl;
+    err = hipMemcpy(deviceBuffer, data, width * height * channels * sizeof(unsigned char), hipMemcpyHostToDevice);
     if ( err != hipSuccess ) {
         std::cerr << "Failed to copy memory to device." << std::endl;
         std::cerr << "hipError-code: " << err << std::endl;
         std::cerr << "hipError-string: " << hipGetErrorString(err) << std::endl;
 
-        hipFree(device_x);
-        hipFree(device_y);
+        (void)hipFree(deviceBuffer);
         return 1;
     }
 
     //
     // Configuring blocks and threads
     //
-    const dim3 numberOfBlocks((width * height - 1) / 32 + 1);
-    const dim3 threadsPerBlock(32);
+    const dim3 numberOfBlocks((width * height - 1) / 256 + 1);
+    const dim3 threadsPerBlock(256);
 
     //
     // Kernel Call
     //
     std::cout << "Calling kernel!" << std::endl;
-    err = HandVisionGPU<<<numberOfBlocks, threadsPerBlock, 0>>>(width, height, channels, data);
+    HandVisionGPU<<<numberOfBlocks, threadsPerBlock, 0>>>(width, height, channels, deviceBuffer);
+    err = hipGetLastError();
     if ( err != hipSuccess ) {
         std::cerr << "Failed to invoke the kernel." << std::endl;
         std::cerr << "hipError-code: " << err << std::endl;
         std::cerr << "hipError-string: " << hipGetErrorString(err) << std::endl;
 
-        hipFree(device_x);
-        hipFree(device_y);
+        (void)hipFree(deviceBuffer);
         return 1;
     }
 
     //
     // Getting the result from the GPU
     //
-    std::cout << "Copying " << width * height * sizeof(int) / 1.0e6 << " MB from device to host." << std::endl;
-    err = hipMemcpy(data, deviceBuffer, width * height * (int), hipMemcpyDeviceToHost);
+    std::cout << "Copying " << width * height * channels * sizeof(unsigned char) / 1.0e6 << " MB from device to host." << std::endl;
+    err = hipMemcpy(data, deviceBuffer, width * height * channels * sizeof(unsigned char), hipMemcpyDeviceToHost);
     if (err != hipSuccess) {
         std::cerr << "Failed to copy memory from device." << std::endl;
         std::cerr << "hipError-code: " << err << std::endl;
         std::cerr << "hipError-string: " << hipGetErrorString(err) << std::endl;
 
-        hipFree(device_x);
-        hipFree(device_y);
+        (void)hipFree(deviceBuffer);
         return 1;
     }
 
-    if (!stbi_write_jpg("../../photos/sample_output.jpg", width, height, channels, data, 100)) {
+    if (!stbi_write_jpg("/home/user/cppProjects/Cuda-ComputerVision/photos/sample_output.jpg", width, height, channels, data, 100)) {
         std::cout << "Failed to write OUTPUT image\n";
     }
 
     //
     // Doing clean ups
     //
-    hipFree(deviceBuffer);
+    (void)hipFree(deviceBuffer);
     stbi_image_free(data);
 
     //
     // Checking How much time it took to complete
     //
     const auto end { std::chrono::high_resolution_clock::now() };
-    std::cout << "Time used: " << std::chrono::duration<double>(end - start) << std::endl;
-
+    std::cout << "Time used: " << std::chrono::duration<double>(end - start).count() << std::endl;
     return EXIT_SUCCESS;
 }
