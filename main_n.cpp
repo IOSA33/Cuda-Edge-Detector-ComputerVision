@@ -12,6 +12,7 @@
 #define Width 3072;
 #define Height 4096;
 
+// Benchmark: 0.05s - 20 fps
 // usage: ffmpeg -i 2.jpg -pix_fmt nv12 -f rawvideo output.nv12
 // usage: ffplay -f rawvideo -pixel_format gray -video_size 3072x4096 -i image_output.raw
 
@@ -25,7 +26,7 @@ void HandVision(std::vector<unsigned char>& vec, std::vector<unsigned char>& mas
     unsigned char colR{ 143 };
     unsigned char colG{ 103 };
     unsigned char colB{ 80 };
-    unsigned char tolerance { 25 };
+    unsigned char tolerance { 29 };
 
     size_t sum_00 { 0 };
     size_t sum_10 { 0 };
@@ -134,9 +135,7 @@ int main() {
     const auto end { std::chrono::high_resolution_clock::now() };
     
     // Just for seeing result in jpg format
-    int width = Width;
-    int height = Height;
-    stbi_write_jpg("output.jpg", width, height, 1, mask.data(), 100);
+    stbi_write_jpg("output.jpg", W, H, 1, mask.data(), 100);
     
     std::cout << "Time used: " << std::chrono::duration<double>(end - start) << std::endl;
 }
