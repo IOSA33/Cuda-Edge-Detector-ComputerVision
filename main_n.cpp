@@ -1,21 +1,27 @@
+#define STB_IMAGE_IMPLEMENTATION
+#include "libs/stb_image.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "libs/stb_image_write.h"
+
 #include <iostream>
 #include <chrono>
 #include <vector>
 #include <fstream>
 #include <iterator>
 
-#define Weight 3072;
+#define Width 3072;
 #define Height 4096;
 
 // usage: ffmpeg -i 2.jpg -pix_fmt nv12 -f rawvideo output.nv12
 // usage: ffplay -f rawvideo -pixel_format gray -video_size 3072x4096 -i image_output.raw
 
 void HandVision(std::vector<unsigned char>& vec, std::vector<unsigned char>& mask) {
-    int W         = Weight;
+    int W         = Width;
     int H         = Height;
     int Y_size    = W * H;
 
-    // The color skin
+    // The result may differ from one image to another, color skin
+    // TODO: average skin colour
     unsigned char colR{ 143 };
     unsigned char colG{ 103 };
     unsigned char colB{ 80 };
@@ -110,7 +116,7 @@ int main() {
     }
 
     std::vector<unsigned char> buffer(std::istreambuf_iterator<char>(input), {});
-    float W = Weight;
+    float W = Width;
     float H = Height;
     std::vector<unsigned char> mask(W * H);
     input.close();
@@ -126,5 +132,11 @@ int main() {
     output.close();
 
     const auto end { std::chrono::high_resolution_clock::now() };
+    
+    // Just for seeing result in jpg format
+    int width = Width;
+    int height = Height;
+    stbi_write_jpg("output.jpg", width, height, 1, mask.data(), 100);
+    
     std::cout << "Time used: " << std::chrono::duration<double>(end - start) << std::endl;
 }
