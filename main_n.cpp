@@ -23,9 +23,9 @@ void HandVision(std::vector<unsigned char>& vec, std::vector<unsigned char>& mas
 
     // The result may differ from one image to another, color skin
     // TODO: average skin colour
-    unsigned char colR{ 143 };
-    unsigned char colG{ 103 };
-    unsigned char colB{ 80 };
+    unsigned char colR { 143 };
+    unsigned char colG { 103 };
+    unsigned char colB { 80 };
     unsigned char tolerance { 29 };
 
     size_t sum_00 { 0 };
@@ -110,17 +110,32 @@ void HandVision(std::vector<unsigned char>& vec, std::vector<unsigned char>& mas
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         std::cout << "usage: ./app <path>" << std::endl;
+        return 1;
     }
 
     const auto start { std::chrono::high_resolution_clock::now() };
 
-    std::ifstream input( "../photos/output.nv12", std::ios::binary );
+    // TODO: change later to path
+    std::ifstream input( "../photos/output.nv12", std::ios::binary | std::ios::ate );
     if (!input.is_open()) {
         std::cout << "Cant open a file!\n";
         return 1;
     }
 
-    std::vector<unsigned char> buffer(std::istreambuf_iterator<char>(input), {});
+    std::streamsize size = input.tellg();
+    input.seekg(0, std::ios::beg);
+
+    if (size <= 0) {
+        std::cout << "File is empty!" << std::endl;
+        return 1;
+    }
+
+    std::vector<unsigned char> buffer(size);
+    if (!input.read(reinterpret_cast<char*>(buffer.data()), size)) {
+        std::cout << "unable to copy data to vector!" << std::endl;
+        return 1;
+    }
+
     float W = Width;
     float H = Height;
     std::vector<unsigned char> mask(W * H);
