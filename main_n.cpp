@@ -107,7 +107,11 @@ void HandVision(std::vector<unsigned char>& vec, std::vector<unsigned char>& mas
     }
 }
 
-int main() {
+int main(int argc, char* argv[]) {
+    if (argc < 2) {
+        std::cout << "usage: ./app <path>" << std::endl;
+    }
+
     const auto start { std::chrono::high_resolution_clock::now() };
 
     std::ifstream input( "../photos/output.nv12", std::ios::binary );
