@@ -16,21 +16,15 @@
 constexpr int g_Width { 3072 };
 constexpr int g_Height { 4096 };
 
-
-//
-//
-//
-__device__ void DrawRectangle() {
-    // TODO: Shared memory and draw then rectangle of sentroid
+__global__ void DrawRectangle(unsigned long long sum_00, unsigned long long sum_10, unsigned long long sum_01) {
+    
 }
 
 //
-// 
+// Doing hand vision work with kernels
 //
-__global__ void HandVisionGPU(unsigned char* vec, unsigned char* mask, int width, int height, int numElements) {
-    int W         = width;
-    int H         = height;
-    int Y_size    = numElements;
+__global__ void HandVisionGPU(unsigned char* vec, unsigned char* mask, int width, int height) {
+    int Y_size    = width * height;
 
     // The result may differ from one image to another, color skin
     // TODO: average skin colour
@@ -39,19 +33,19 @@ __global__ void HandVisionGPU(unsigned char* vec, unsigned char* mask, int width
     unsigned char colB { 80 };
     unsigned char tolerance { 29 };
 
-    size_t sum_00 { 0 };
-    size_t sum_10 { 0 };
-    size_t sum_01 { 0 };
+    unsigned long long sum_00 { 0 };
+    unsigned long long sum_10 { 0 };
+    unsigned long long sum_01 { 0 };
 
-    for (size_t y { 0 }; y < H; ++y) {
-        for (size_t x { 0 }; x < W; ++x) {
+    for (unsigned long long y { 0 }; y < height; ++y) {
+        for (unsigned long long x { 0 }; x < width; ++x) {
 
             // brightness index
-            int Y = vec[y * W + x];
+            int Y = vec[y * width + x];
             // Calculating index
             int uv_row = y / 2;
             int uv_col = x / 2;
-            int uv_index = Y_size + (uv_row * W) + (uv_col * 2);
+            int uv_index = Y_size + (uv_row * width) + (uv_col * 2);
             // UV for the pixel (i,j)
             int U   = vec[uv_index];
             int V   = vec[uv_index + 1];
@@ -69,18 +63,22 @@ __global__ void HandVisionGPU(unsigned char* vec, unsigned char* mask, int width
             if (B < 0) B = 0; if (B > 255) B = 255;
 
             if (std::abs(R - colR) <= tolerance && std::abs(G - colG) <= tolerance && std::abs(B - colB) <= tolerance) {
-                mask[y * W + x] = 255;
+                mask[y * width + x] = 255;
+                
                 ++sum_00;
                 sum_10 += x;
                 sum_01 += y;
+
             } else {
-                mask[y * W + x] =  0;
+                mask[y * width + x] =  0;
             }
         }
     }
 
-    size_t x_coord { sum_10 / sum_00 };
-    size_t y_coord { sum_01 / sum_00 };
+    __syncthreads()
+
+    unsigned long long x_coord { sum_10 / sum_00 };
+    unsigned long long y_coord { sum_01 / sum_00 };
 
     int r { 1100 };
     int d { 1350 };
@@ -91,11 +89,11 @@ __global__ void HandVisionGPU(unsigned char* vec, unsigned char* mask, int width
         int ny1 = y_coord - d;
         int ny2 = y_coord + d;
 
-        if (nx >= 0 && nx < W) {
-            if (ny1 >= 0 && ny1 < H) {
-                mask[ny1 * W + nx] = 255;
+        if (nx >= 0 && nx < width) {
+            if (ny1 >= 0 && ny1 < height) {
+                mask[ny1 * width + nx] = 255;
             }
-            if (ny2 >= 0 && ny2 < H) {
+            if (ny2 >= 0 && ny2 < height) {
                 mask[ny2 * W + nx] = 255;
             }
         }
@@ -107,7 +105,7 @@ __global__ void HandVisionGPU(unsigned char* vec, unsigned char* mask, int width
         int nx1 = x_coord - r;
         int nx2 = x_coord + r;
 
-        if (ny >= 0 && ny < H) {
+        if (ny >= 0 && ny < height) {
             if (nx1 >= 0 && nx1 < W) {
                 mask[ny * W + nx1] = 255;
             }
@@ -185,9 +183,16 @@ int main(int argc, char* argv[]) {
     // Allocating space in global memory
     //
     std::cout << "Allocating " << g_Width * g_Height * sizeof(unsigned char) / 1.0e6 << " MB of global memory." << std::endl;
-    
     unsigned char* deviceBuffer;
+    unsigned char* deviceMask;
     err = hipMalloc(&deviceBuffer, g_Width * g_Height * sizeof(unsigned char));
+    if ( err != hipSuccess ) {
+        std::cerr << "Failed to allocate memory." << std::endl;
+        std::cerr << "hipError-code: " << err << std::endl;
+        std::cerr << "hipError-string: " << hipGetErrorString(err) << std::endl;
+        return 1;
+    }
+    err = hipMalloc(&deviceMask, g_Width * g_Height * sizeof(unsigned char));
     if ( err != hipSuccess ) {
         std::cerr << "Failed to allocate memory." << std::endl;
         std::cerr << "hipError-code: " << err << std::endl;
@@ -196,10 +201,10 @@ int main(int argc, char* argv[]) {
     }
 
     //
-    // Transfering raw bytes buffer to device memory
+    // Transfering raw bytes __buffer to device memory, we dont transfer __mask because
+    // its empty vector and we only gonna store it there the data
     //
     std::cout << "Copying " << g_Width * g_Height * sizeof(unsigned char) / 1.0e6 << " MB from host to device." << std::endl;
-
     err = hipMemcpy(deviceBuffer, __buffer, g_Width * g_Height * sizeof(unsigned char), hipMemcpyHostToDevice);
     if ( err != hipSuccess ) {
         std::cerr << "Failed to copy memory to device." << std::endl;
@@ -220,8 +225,7 @@ int main(int argc, char* argv[]) {
     // Kernel Call
     //
     std::cout << "Calling kernel!" << std::endl;
-    
-    HandVisionGPU<<<numberOfBlocks, threadsPerBlock, 0>>>(deviceBuffer, __mask, g_Width, g_Height, g_Width * g_Height);
+    HandVisionGPU<<<numberOfBlocks, threadsPerBlock, 0>>>(deviceBuffer, __mask, g_Width, g_Height);
     err = hipGetLastError();
     if ( err != hipSuccess ) {
         std::cerr << "Failed to invoke the kernel." << std::endl;
