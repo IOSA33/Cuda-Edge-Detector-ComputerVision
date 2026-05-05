@@ -9,16 +9,16 @@
 #include <fstream>
 #include <iterator>
 
-constexpr int Width { 3072 };
-constexpr int Height { 4096 };
+constexpr int g_Width { 3072 };
+constexpr int g_Height { 4096 };
 
 // Benchmark: 0.03s - 33 fps
 // usage: ffmpeg -i 2.jpg -pix_fmt nv12 -f rawvideo output.nv12
 // usage: ffplay -f rawvideo -pixel_format gray -video_size 3072x4096 -i image_output.raw
 
 void HandVision(std::vector<unsigned char>& vec, std::vector<unsigned char>& mask) {
-    int W         = Width;
-    int H         = Height;
+    int W         = g_Width;
+    int H         = g_Height;
     int Y_size    = W * H;
 
     // The result may differ from one image to another, color skin
@@ -136,7 +136,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    std::vector<unsigned char> mask(Width * Height);
+    std::vector<unsigned char> mask(g_Width * g_Height);
     input.close();
 
     HandVision(buffer, mask);
@@ -152,7 +152,7 @@ int main(int argc, char* argv[]) {
     const auto end { std::chrono::high_resolution_clock::now() };
     
     // Just for seeing result in jpg format
-    stbi_write_jpg("output.jpg", Width, Height, 1, mask.data(), 100);
+    stbi_write_jpg("output.jpg", g_Width, g_Height, 1, mask.data(), 100);
     
     std::cout << "Time used: " << std::chrono::duration<double>(end - start) << std::endl;
 }
