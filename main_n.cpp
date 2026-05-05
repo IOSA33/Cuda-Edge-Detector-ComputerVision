@@ -9,10 +9,10 @@
 #include <fstream>
 #include <iterator>
 
-#define Width 3072;
-#define Height 4096;
+constexpr int Width { 3072 };
+constexpr int Height { 4096 };
 
-// Benchmark: 0.05s - 20 fps
+// Benchmark: 0.03s - 33 fps
 // usage: ffmpeg -i 2.jpg -pix_fmt nv12 -f rawvideo output.nv12
 // usage: ffplay -f rawvideo -pixel_format gray -video_size 3072x4096 -i image_output.raw
 
@@ -109,7 +109,7 @@ void HandVision(std::vector<unsigned char>& vec, std::vector<unsigned char>& mas
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
-        std::cout << "usage: ./app <path>" << std::endl;
+        std::cout << "usage: ./app.exe <path>" << std::endl;
         return 1;
     }
 
@@ -136,9 +136,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    float W = Width;
-    float H = Height;
-    std::vector<unsigned char> mask(W * H);
+    std::vector<unsigned char> mask(Width * Height);
     input.close();
 
     HandVision(buffer, mask);
@@ -154,7 +152,7 @@ int main(int argc, char* argv[]) {
     const auto end { std::chrono::high_resolution_clock::now() };
     
     // Just for seeing result in jpg format
-    stbi_write_jpg("output.jpg", W, H, 1, mask.data(), 100);
+    stbi_write_jpg("output.jpg", Width, Height, 1, mask.data(), 100);
     
     std::cout << "Time used: " << std::chrono::duration<double>(end - start) << std::endl;
 }
